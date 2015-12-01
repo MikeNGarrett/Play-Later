@@ -1,5 +1,6 @@
 <?php
 //TODO: get rid of all these stupid requires
+//TODO: add popularity update for all tracks this week to this cron
 require '../spotify/SpotifyWebAPI.php';
 require '../spotify/SpotifyWebAPIException.php';
 require '../spotify/Session.php';

@@ -158,7 +158,7 @@ function parseAlbum($n) {
 				break;
 
 			case 'popularity':
-				$album['popularity'] = floatval($n2->nodeValue);
+				$album['popularity'] = floatval($n2->nodeValue) * 100;
 				break;
 
 			case 'availability':

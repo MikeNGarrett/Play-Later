@@ -42,7 +42,7 @@ class Database extends PDO
 					name varchar(256) NOT NULL,
 					release_date DATE NOT NULL,
 					availability varchar(128),
-					popularity varchar(12),
+					popularity mediumint,
 					tracks int,
 					image varchar(256),
 					artists varchar(256) NOT NULL,

@@ -33,47 +33,39 @@
 //TODO: You're hanging on to the playlist too long (check for deleted playlist)
 //TODO: Get playlist check to work right.
 //TODO: differentiate clean/dirty and other duplicates
-//TODO: consolidate requires and stuff
 error_reporting(E_ALL);
 session_start();
 
-require 'spotify/SpotifyWebAPI.php';
-require 'spotify/SpotifyWebAPIException.php';
-require 'spotify/Session.php';
-require 'spotify/Request.php';
+include_once 'spotify-config.php';
+$spotify = new Spotify();
 
 include_once 'config.php';
 $database = new Database();
 
-$path_to_play_later = ''; //EG: 'http://redgarrett.com/lab/play-later';
-
 // Only start a session if we have an authorized account
 $logged_in = false;
 
-$session = new SpotifyWebAPI\Session('CLIENT_ID', 'CLIENT_SECRET', 'REDIRECT_URI');
-$api = new SpotifyWebAPI\SpotifyWebAPI();
-
 if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires'] ) ) {
 	if ( $_SESSION['spotify_expires'] > time() ) {
-		$session->refreshAccessToken( $_SESSION['spotify_refresh_token'] );
-		$_SESSION['spotify_token'] = $session->getAccessToken();
+		$spotify->session->refreshAccessToken( $_SESSION['spotify_refresh_token'] );
+		$_SESSION['spotify_token'] = $spotify->session->getAccessToken();
 
-		$api->setAccessToken($_SESSION['spotify_token']);
+		$spotify->api->setAccessToken($_SESSION['spotify_token']);
 	} else {
-		$api->setAccessToken( $_SESSION['spotify_token'] );
+		$spotify->api->setAccessToken( $_SESSION['spotify_token'] );
 	}
-	$me = $api->me();
+	$me = $spotify->api->me();
 	if( !isset( $_SESSION['playlist'] ) ) {
-		$play_later = get_playlist( $me, $api );
+		$play_later = get_playlist( $me, $spotify->api );
 		if( !$play_later ) {
-			$play_later = $api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
+			$play_later = $spotify->api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
 		}
 		$_SESSION['playlist'] = $play_later;
 	}
 	$play_later = $_SESSION['playlist'];
 	$logged_in = true;
 
-	$full_playlist = $api->getUserPlaylist( $me->id, $play_later->id, array( 'fields' => 'tracks.items(track(album(id)))' ) );
+	$full_playlist = $spotify->api->getUserPlaylist( $me->id, $play_later->id, array( 'fields' => 'tracks.items(track(album(id)))' ) );
 	$all_albums = array();
 	foreach( $full_playlist->tracks->items as $album ) {
 		$all_albums[] = $album->track->album->id;
@@ -128,7 +120,12 @@ $date = date('Y-m-d');
 //genre=art+rock genre=boy+band date=Last+Week
 //Future functionality: go back in time week by week
 
-$last_friday = strtotime( "last Friday" );
+// If it's Friday, set it to today.
+if( date( 'D' ) == 'Fri' ) {
+	$last_friday = time();
+} else {
+	$last_friday = strtotime( "last Friday" );
+}
 $one_week = 7 * 24 * 60 * 60;
 $one_day = 24 * 60 * 60;
 
@@ -185,7 +182,7 @@ foreach( $albums as $key => &$album ) {
 		foreach( $a_genres as $s_genre ) {
 			$url_genres = xe($s_genre);
 			$selected = '';
-			if( in_array( $s_genre, $_GET['genres'] ) ) {
+			if( isset( $_GET['genres'] ) && in_array( $s_genre, $_GET['genres'] ) ) {
 				$selected = ' selected';
 			}
 			$select_genres[$s_genre] = '<option value="'.$url_genres.'"'.$selected.'>'.$s_genre.'</option>';
@@ -216,8 +213,8 @@ asort( $select_genres );
   <body>
     <header>
       <h1>New releases on <a href="http://www.spotify.com/">Spotify</a></h1>
-      <h2>Showing the most popular released albums, no singles, no compilations</h2>
-      <h3>Currently (as of 11/20/15) showing <em>all</em> releases. Starting next week (11/27/15), you will only see albums released on Friday or later for the current week.</h3>
+      <h2>Showing the most popular released albums since last Friday (<?php echo date( 'm/d/Y', $last_friday ); ?>), no singles, no compilations</h2>
+      <h3>Use the filters below to modify the result.</h3>
       <?php if( !$logged_in ) { ?>
 	      <a href="spotify/" class="button">Log In</a>
       <?php } ?>
@@ -229,9 +226,9 @@ asort( $select_genres );
 		</select>
 		<select name="date">
 			<option value="">-- Date Range --</option>
-			<option value="this-week"<?php if( $_GET['date'] == 'this-week' ) { echo ' selected'; } ?>>This Week</option>
-			<option value="last-week"<?php if( $_GET['date'] == 'last-week' ) { echo ' selected'; } ?>>Last Week</option>
-			<option value="two-weeks"<?php if( $_GET['date'] == 'two-weeks' ) { echo ' selected'; } ?>>Two Weeks Ago</option>
+			<option value="this-week"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'this-week' ) { echo ' selected'; } ?>>This Week</option>
+			<option value="last-week"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'last-week' ) { echo ' selected'; } ?>>Last Week</option>
+			<option value="two-weeks"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'two-weeks' ) { echo ' selected'; } ?>>Two Weeks Ago</option>
 		</select>
 		<button type="submit">Filter</button>
 	  </form>
@@ -298,14 +295,15 @@ asort( $select_genres );
 		  </li>
 		<?php endforeach; ?>
       </ol>
-      <?php //TODO: make this play nicely with filters ?>
-      <?php if( ( $list_offset - $limit ) >= 0 ) { ?>
-	      <a href="<?php echo $path_to_play_later; ?>/?offset=<?php echo $list_offset - $limit ?>" class="button offset prev">Previous <?php echo $limit; ?></a>
+      <?php
+	      // TODO: build offset into other query strings, eg offset=100&date=this-week
+	      if( ( $list_offset - $limit ) >= 0 ) { ?>
+	      <a href="?offset=<?php echo $list_offset - $limit ?>" class="button offset prev">Previous <?php echo $limit; ?></a>
       <?php } elseif ( $list_offset !== 0 ) { ?>
-	      <a href="<?php echo $path_to_play_later; ?>/?offset=0" class="button offset prev">Back to the Start</a>
+	      <a href="?offset=0" class="button offset prev">Back to the Start</a>
       <?php } ?>
       <?php // I would have an upward bound here, but who cares? ?>
-    	  <a href="<?php echo $path_to_play_later; ?>/?offset=<?php echo $list_offset + $limit ?>" class="button offset next">Next <?php echo $limit; ?></a>
+    	  <a href="?offset=<?php echo $list_offset + $limit ?>" class="button offset next">Next <?php echo $limit; ?></a>
     </section>
 
     <footer>

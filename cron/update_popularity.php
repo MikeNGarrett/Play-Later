@@ -1,15 +1,8 @@
 <?php
-//TODO: add popularity update for all tracks this week to this cron
-require '../spotify/SpotifyWebAPI.php';
-require '../spotify/SpotifyWebAPIException.php';
-require '../spotify/Session.php';
-require '../spotify/Request.php';
-
-$session = new SpotifyWebAPI\Session('CLIENT_ID', 'CLIENT_SECRET', 'REDIRECT_URI');
-
-$api = new SpotifyWebAPI\SpotifyWebAPI();
-
 error_reporting(E_ALL);
+
+include_once '../spotify-config.php';
+$spotify = new Spotify();
 
 include_once '../config.php';
 $database = new Database();
@@ -25,7 +18,7 @@ $album_ids = array();
 while ($row = $query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
 	$album_ids[] = $row[0];
 	if( count($album_ids) >= 20) {
-		$albums = $api->getAlbums($album_ids);
+		$albums = $spotify->api->getAlbums($album_ids);
 
 		$database->beginTransaction();
 		foreach( $albums->albums as $album ) {

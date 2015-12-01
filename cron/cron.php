@@ -241,7 +241,7 @@ for ($pageNo = 1; $pageNo <= $totalPages; $pageNo++) {
 
 				$database->beginTransaction();
 
-				$query = $database->prepare('INSERT IGNORE INTO albums (id, upc, name, release_date, availability, popularity, tracks, image, artists, genres) VALUES (:id, :upc, :name, NOW(), :availability, :popularity, :tracks, :image, :artists, :genres)');
+				$query = $database->prepare('INSERT INTO albums (id, upc, name, release_date, availability, popularity, tracks, image, artists, genres) VALUES (:id, :upc, :name, NOW(), :availability, :popularity, :tracks, :image, :artists, :genres) ON DUPLICATE KEY UPDATE popularity=:popularity');
 
 				$parse_album_uri = explode(":", $album_uri);
 				$query->bindParam(':id', $parse_album_uri[2], PDO::PARAM_STR);

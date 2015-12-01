@@ -12,10 +12,10 @@ class Database extends PDO
      */
     public function __construct()
     {
-        $this->host = '';
-        $this->database = '';
-        $this->user = '';
-        $this->password = '';
+        $this->host = 'HOST';
+        $this->database = 'DATABASE';
+        $this->user = 'DATABASE_USER';
+        $this->password = 'DATABASE_PASSWORD';
 
         $this->dns = 'mysql:host=' . $this->host . ';dbname=' . $this->database;
 

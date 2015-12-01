@@ -12,15 +12,16 @@ Use at your own risk!
 
 ## Requirements
 
-Tested using PHP 5.5 and MySQL 5.6.
-Requires at least PHP 5.4 and MySQL 5.5.
-Recommended that you have command line access and ability to create cron jobs.
+* Tested using PHP 5.5 and MySQL 5.6.
+* Requires at least PHP 5.4 and MySQL 5.5.
+* Recommended that you have command line access and ability to create cron jobs.
 
 ## Installation
 
 You need a mysql database and [Spotify app](https://developer.spotify.com/my-applications/#!/applications/create) before you begin.
 
 Add your mysql connection details to `config.php`
+
 Add your Spotify API credentials to `spotify-config.php` including full redirect and callback URIs.
 
 Finally, run the following commands via the command line to ingest the initial data set:
@@ -31,6 +32,7 @@ $ php cron/update_popularity.php
 ```
 
 You should add these three commands as cron tasks to keep your data up to date.
+
 First, run `$ contab -e` then enter the following:
 ```
 # Run every night at midnight
@@ -48,8 +50,11 @@ Working example: http://redgarrett.com/lab/play-later/
 ![Example of Play Later](example-play-later.png)
 
 The index.php in your web root displays a list of releases for the current week (since last Friday) in order of popularity with some filters.
+
 Clicking `Log In` signs you in to Spotify and delivers you back to the list.
+
 A `Play Later` playlist is created in Spotify and Play Later buttons are added beneath each album.
+
 Clicking on `Play Later` adds the album listed above to your playlist. The playlist also keeps a record of what you have saved already, displaying these greyed out in the list.
 
 Filters exist for genres (may take a bit to populate all) and date ranges for this week, last week, and two weeks ago.

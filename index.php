@@ -166,7 +166,7 @@ if( isset( $_GET['offset'] ) ) {
 		}
 	}
 }
-$query = $database->prepare("SELECT * FROM albums WHERE (tracks > 3 AND tracks < 25) AND (release_date BETWEEN :lastfriday AND :thisfriday ) ORDER BY popularity DESC LIMIT :offset, :limit");
+$query = $database->prepare("SELECT * FROM albums WHERE ( tracks > 3 AND tracks < 25 ) AND ( release_date BETWEEN :lastfriday AND :thisfriday ) AND ( availability LIKE '%US%' OR availability='ANY' ) ORDER BY popularity DESC LIMIT :offset, :limit");
 $query->bindParam(':lastfriday', $previous_date, PDO::PARAM_STR);
 $query->bindParam(':thisfriday', $next_date, PDO::PARAM_STR);
 $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);

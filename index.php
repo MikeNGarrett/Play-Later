@@ -42,6 +42,9 @@ $spotify = new Spotify();
 include_once 'config.php';
 $database = new Database();
 
+require_once("phpfastcache.php");
+$cache = phpFastCache();
+
 // Only start a session if we have an authorized account
 $logged_in = false;
 
@@ -85,6 +88,7 @@ if (isset($_GET['region']) && spotifyCountriesFilter($_GET['region']))
 	$region = strtolower($_GET['region']);
 */
 
+// Get rid of these if they're empty
 if( isset( $_GET['date'] ) && empty( $_GET['date'] ) ) {
 	unset( $_GET['date'] );
 }
@@ -116,9 +120,6 @@ function xe($s) {
 
 
 $date = date('Y-m-d');
-
-//genre=art+rock genre=boy+band date=Last+Week
-//Future functionality: go back in time week by week
 
 // If it's Friday, set it to today.
 if( date( 'D' ) == 'Fri' ) {
@@ -154,7 +155,7 @@ $next_date = date( "Y-m-d", $to_day );
 
 $limit = 100;
 $list_offset = 0;
-// Required for is_numeric, that bitch
+// Required for is_numeric, that jerk
 if( isset( $_GET['offset'] ) ) {
 	$temp_offset = $_GET['offset'];
 	if( is_numeric( $temp_offset ) ) {
@@ -163,31 +164,36 @@ if( isset( $_GET['offset'] ) ) {
 		}
 	}
 }
-$query = $database->prepare("SELECT * FROM albums WHERE ( tracks > 3 AND tracks < 25 ) AND ( release_date BETWEEN :lastfriday AND :thisfriday ) AND ( availability LIKE '%US%' OR availability='ANY' ) ORDER BY popularity DESC LIMIT :offset, :limit");
-$query->bindParam(':lastfriday', $previous_date, PDO::PARAM_STR);
-$query->bindParam(':thisfriday', $next_date, PDO::PARAM_STR);
+
+$where_track_count = "";
+$where_release_date = "";
+$where_availability = "";
+$where_genres = "";
+if( isset( $_GET['genres'] ) ) {
+	$where_genres = "(";
+	foreach( $_GET['genres'] as $g ) {
+		$where_genres .= ' genres LIKE '.$database->quote('%"'.$g.'"%').' AND';
+	}
+	$where_genres = rtrim( $where_genres, ' AND' );
+	$where_genres .= ")";
+} else {
+	$where_track_count = "( tracks > 3 AND tracks < 25 ) AND ";
+	$where_release_date = "( release_date BETWEEN :lastfriday AND :thisfriday ) AND ";
+	$where_availability = "( availability LIKE '%US%' OR availability='ANY' )";
+}
+
+$query = $database->prepare("SELECT * FROM albums WHERE " . $where_track_count . $where_release_date . $where_availability . $where_genres . " ORDER BY popularity DESC LIMIT :offset, :limit");
+if( !isset( $_GET['genres'] ) ) {
+	$query->bindParam(':lastfriday', $previous_date, PDO::PARAM_STR);
+	$query->bindParam(':thisfriday', $next_date, PDO::PARAM_STR);
+}
 $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);
 $query->bindParam(':limit', $limit, PDO::PARAM_INT);
 $query->execute();
+
 $albums = $query->fetchAll();
 
-
-// TODO: replace this with some sort of collab from the genres table
-// How do you match genre table to albums table?
-// How do you only display relevant genres here?
-$select_genres = array();
 foreach( $albums as $key => &$album ) {
-	if( isset( $album['genres'] ) ) {
-		$a_genres = unserialize( $album['genres'] );
-		foreach( $a_genres as $s_genre ) {
-			$url_genres = xe($s_genre);
-			$selected = '';
-			if( isset( $_GET['genres'] ) && in_array( $s_genre, $_GET['genres'] ) ) {
-				$selected = ' selected';
-			}
-			$select_genres[$s_genre] = '<option value="'.$url_genres.'"'.$selected.'>'.$s_genre.'</option>';
-		}
-	}
 	$get_artists = unserialize( $album['artists'] );
 	$album['artists'] = array();
 
@@ -200,7 +206,40 @@ foreach( $albums as $key => &$album ) {
 	}
 }
 unset($album);
-asort( $select_genres );
+
+// TODO: figure out what the hell to exactly do with these currently useless genres
+if( $cache->isExisting("genres") ) {
+	$select_genres = $cache->get("genres");
+} else {
+	$genre_query = $database->prepare("SELECT name FROM genres");
+	$genre_query->execute();
+
+	$select_genres = array();
+	while ($row = $genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
+		$genre = $row[0];
+		$url_genres = xe($genre);
+		$selected = '';
+		$count_genre_query = $database->prepare("SELECT COUNT(*) FROM albums WHERE ( genres LIKE :genre ) AND ( tracks > 3 AND tracks < 25 )");
+		// A way to check for an exact match in a serialized array
+		$p_genre = '%"'.$genre.'"%';
+		$count_genre_query->bindParam(':genre', $p_genre, PDO::PARAM_STR);
+		$count_genre_query->execute();
+
+		$genre_count = $count_genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT);
+		$genre_count = $genre_count[0];
+/* // TODO: figure out what the hell to do here
+		if( isset( $_GET['genres'] ) && in_array( $genre, $_GET['genres'] ) ) {
+			$selected = ' selected';
+		}
+*/
+		if( $genre_count > 0 ) {
+			$select_genres[$genre] = '<option value="'.$url_genres.'"'.$selected.'>'.$genre.' ('.$genre_count.')</option>';
+		}
+	}
+	asort( $select_genres );
+	$cache->set("genres", $select_genres, 60*60*12); // Cache for 12 hours
+}
+
 ?>
 <!DOCTYPE HTML>
 <html lang="en">
@@ -213,7 +252,11 @@ asort( $select_genres );
   <body>
     <header>
       <h1>New releases on <a href="http://www.spotify.com/">Spotify</a></h1>
-      <h2>Showing the most popular released albums since last Friday (<?php echo date( 'm/d/Y', $last_friday ); ?>), no singles, no compilations</h2>
+	  <?php if( isset( $_GET['genres'] ) ) { ?>
+	    <h2>Showing the all albums in genres: <?php implode( ', ', $_GET['genres'] ); ?></h2>
+	  <?php } else { ?>
+	    <h2>Showing the most popular released albums since last Friday (<?php echo date( 'm/d/Y', $last_friday ); ?>), no singles, no compilations</h2>
+	  <?php } ?>
       <h3>Use the filters below to modify the result.</h3>
       <?php if( !$logged_in ) { ?>
 	      <a href="spotify/" class="button">Log In</a>

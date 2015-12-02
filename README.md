@@ -15,6 +15,7 @@ Use at your own risk!
 * Tested using PHP 5.5 and MySQL 5.6.
 * Requires at least PHP 5.4 and MySQL 5.5.
 * Recommended that you have command line access and ability to create cron jobs.
+* Excited to use [PHPFastCache](https://github.com/khoaofgod/phpfastcache) for plug-and-play caching
 
 ## Installation
 

@@ -1,8 +1,8 @@
 <?php
 function __autoload( $class_name ) {
 	$class = str_replace( '\\', '/', $class_name );
-	if (file_exists(__DIR__.'/'.$class . '.php')) {
-		require_once __DIR__.'/'.$class . '.php';
+	if (file_exists(dirname(__FILE__).'/'.$class . '.php')) {
+		require_once dirname(__FILE__).'/'.$class . '.php';
 		return true;
 	}
 	return false;

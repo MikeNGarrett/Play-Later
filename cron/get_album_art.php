@@ -7,6 +7,9 @@ $spotify = new Spotify();
 include_once '../config.php';
 $database = new Database();
 
+require_once("../phpfastcache.php");
+$cache = phpFastCache();
+
 $query = $database->prepare('SELECT id, artists FROM albums WHERE (image IS NULL) OR (tracks IS NULL) OR (genres IS NULL)');
 $query->execute();
 $album_ids = array();
@@ -72,3 +75,28 @@ while ($row = $query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
 		$artist_ids = array();
 	}
 }
+
+$genre_query = $database->prepare("SELECT name FROM genres");
+$genre_query->execute();
+
+$select_genres = array();
+while ($row = $genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
+	$genre = $row[0];
+	$url_genres = xe($genre);
+	$selected = '';
+	$count_genre_query = $database->prepare("SELECT COUNT(*) FROM albums WHERE ( genres LIKE :genre ) AND ( tracks > 3 AND tracks < 25 )");
+	// A way to check for an exact match in a serialized array
+	$p_genre = '%"'.$genre.'"%';
+	$count_genre_query->bindParam(':genre', $p_genre, PDO::PARAM_STR);
+	$count_genre_query->execute();
+
+	$genre_count = $count_genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT);
+	$genre_count = $genre_count[0];
+	if( $genre_count > 0 ) {
+		$select_genres[$genre] = '<option value="'.$url_genres.'"'.$selected.'>'.$genre.' ('.$genre_count.')</option>';
+	}
+}
+asort( $select_genres );
+$cache->delete("genres");
+$cache->set("genres", $select_genres, 60*60*24*365); // Cache for 365 days... basically indefinitely
+

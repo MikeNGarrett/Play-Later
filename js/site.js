@@ -5,6 +5,7 @@
 		init: function() {
 			// Unversal functionality
 			this.play_later();
+			this.select();
 		},
 		// window on load code
 		load: function() {
@@ -37,7 +38,13 @@
 					}
 				});
 			});
-
+		},
+		select: function() {
+			$('#genres').select2({
+				placeholder: "Select a genre",
+				tags: true,
+				tokenSeparators: [',', ' ']
+			});
 		}
 	});
 

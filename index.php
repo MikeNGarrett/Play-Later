@@ -172,9 +172,9 @@ $where_genres = "";
 if( isset( $_GET['genres'] ) ) {
 	$where_genres = "(";
 	foreach( $_GET['genres'] as $g ) {
-		$where_genres .= ' genres LIKE '.$database->quote('%"'.$g.'"%').' AND';
+		$where_genres .= ' genres LIKE '.$database->quote('%"'.$g.'"%').' OR';
 	}
-	$where_genres = rtrim( $where_genres, ' AND' );
+	$where_genres = rtrim( $where_genres, ' OR' );
 	$where_genres .= ")";
 } else {
 	$where_track_count = "( tracks > 3 AND tracks < 25 ) AND ";
@@ -245,7 +245,9 @@ if( $cache->isExisting("genres") ) {
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>New releases on Spotify, Rdio style</title>
+	<link type="text/css" href="css/select2.min.css" rel="stylesheet" />
 	<link type="text/css" href="css/site.css" rel="stylesheet" />
   </head>
 
@@ -263,8 +265,7 @@ if( $cache->isExisting("genres") ) {
       <?php } ?>
 	  <p>The Play Later buttons will add the selected album to a new (or existing) playlist called &ldquo;Play Later&rdquo;</p>
 	  <form action="index.php" method="get">
-		<select name="genres[]" multiple="multiple" size="10">
-			<option value="">-- Genre --</option>
+		<select id="genres" name="genres[]" multiple="multiple" size="10">
 			<?php echo implode("", $select_genres); ?>
 		</select>
 		<select name="date">
@@ -359,6 +360,7 @@ if( $cache->isExisting("genres") ) {
       </p>
     </footer>
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+	<script type="text/javascript" src="js/select2.min.js"></script>
     <script type="text/javascript" src="js/site.js"></script>
   </body>
 </html>

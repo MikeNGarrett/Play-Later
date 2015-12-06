@@ -49,15 +49,23 @@ $cache = phpFastCache();
 $logged_in = false;
 
 if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires'] ) ) {
-	if ( $_SESSION['spotify_expires'] > time() ) {
-		$spotify->session->refreshAccessToken( $_SESSION['spotify_refresh_token'] );
-		$_SESSION['spotify_token'] = $spotify->session->getAccessToken();
+	if ( $_SESSION['spotify_expires'] < time() ) {
+		if( !empty($_SESSION['spotify_refresh_token']) ) {
+			$spotify->session->refreshAccessToken( $_SESSION['spotify_refresh_token'] );
+			$_SESSION['spotify_token'] = $spotify->session->getAccessToken();
+			$_SESSION['spotify_refresh_token'] = $spotify->session->getRefreshToken();
+			$_SESSION['spotify_expires'] = $spotify->session->getTokenExpiration();
 
-		$spotify->api->setAccessToken($_SESSION['spotify_token']);
+			$spotify->api->setAccessToken( $_SESSION['spotify_token'] );
+		} else {
+			// Kill the session
+			session_unset();
+		}
 	} else {
 		$spotify->api->setAccessToken( $_SESSION['spotify_token'] );
 	}
 	$me = $spotify->api->me();
+
 	if( !isset( $_SESSION['playlist'] ) ) {
 		$play_later = get_playlist( $me, $spotify->api );
 		if( !$play_later ) {
@@ -68,10 +76,32 @@ if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires']
 	$play_later = $_SESSION['playlist'];
 	$logged_in = true;
 
-	$full_playlist = $spotify->api->getUserPlaylist( $me->id, $play_later->id, array( 'fields' => 'tracks.items(track(album(id)))' ) );
-	$all_albums = array();
-	foreach( $full_playlist->tracks->items as $album ) {
-		$all_albums[] = $album->track->album->id;
+	if( $cache->isExisting($play_later->id."play_later_albums") ) {
+		$all_albums = $cache->get($play_later->id."play_later_albums");
+	} else {
+
+		$playlist_limits = $spotify->api->getUserPlaylist( $me->id, $play_later->id, array( 'fields' => 'tracks(total)' ) );
+
+		$playlist_tracks_cursor = 0;
+		$playlist_tracks_total = $playlist_limits->tracks->total;
+
+		$i = 0;
+		$all_albums = array();
+		while( $playlist_tracks_cursor <= $playlist_tracks_total ) {
+			$i++;
+
+			$playlist = $spotify->api->getUserPlaylistTracks( $me->id, $play_later->id, array( 'fields' => 'items(track(album(id))),limit,offset', 'limit' => 100, 'offset' => $playlist_tracks_cursor ) );
+			$playlist_tracks_cursor = $playlist->offset + $playlist->limit;
+
+			foreach( $playlist->items as $album ) {
+				$all_albums[$album->track->album->id] = $album->track->album->id;
+			}
+			if($i > 50) {
+				// Kill runaway processes, limited to 5000 track playlists.
+				break;
+			}
+		}
+		$cache->set($play_later->id."play_later_albums", $all_albums, 60*15); // Cache for 15 minutes
 	}
 }
 
@@ -191,6 +221,9 @@ $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);
 $query->bindParam(':limit', $limit, PDO::PARAM_INT);
 $query->execute();
 
+// Only returns 100
+// TODO: grab all rows or something and actually show an accurate count
+//$album_count = $query->rowCount();
 $albums = $query->fetchAll();
 
 foreach( $albums as $key => &$album ) {
@@ -352,11 +385,31 @@ if( $cache->isExisting("genres") ) {
 
     <footer>
       <h2>Built on the open Spotify metadata API</h2>
+      <p>DEBUG:
+		<?php
+		if( isset( $me ) ) {
+			echo 'Logged in as <a href="'.$me->href.'">'.$me->display_name.'</a>, ';
+		}
+		if( isset( $all_albums ) ) {
+			echo 'Ingested '.count( $all_albums ).' albums from Play Later, ';
+		}
+		if( isset( $_SESSION['spotify_expires'] ) ) {
+			echo 'Token Expires: '.date('Y-m-d h:m:s', $_SESSION['spotify_expires']).', ';
+		}
+
+		?>
+	  </p>
       <p>
 	This is a simple hack built on top of the open
 	<a href="https://developer.spotify.com/technologies/web-api/">Spotify metadata API</a>.
 	Source repo coming soon. Based on the wonderful work on <a href="http://spotifyreleases.com/">SpotifyReleases.com</a>.
 	Forked and improved by <a href="https://twitter.com/MikeNGarrett">@MikeNGarrett</a>
+      </p>
+      <p>
+	      Other sources: <a href="http://everynoise.com/spotify_new_releases.html">EveryNoise New Releases</a>, <a href="http://swarm.fm/">Swarm.fm</a>, and <a href="http://pansentient.com/new-on-spotify/">Pansentient's New on Spotify</a>.
+      </p>
+      <p>
+	      <a href="http://everynoise.com/engenremap.html">List of all Spotify genres</a>
       </p>
     </footer>
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>

@@ -34,7 +34,7 @@ $ php cron/update_popularity.php
 
 You should add these three commands as cron tasks to keep your data up to date.
 
-First, run `$ contab -e` then enter the following:
+First, run `$ crontab -e` then enter the following:
 ```
 # Run every night at midnight
 00 00 * * * cd /path/to/cron/; php cron.php >> /path/to/log/play-later-cron.log

@@ -3,9 +3,9 @@ html{
 }
 
 body{
+	font-family: 'Open Sans', helvetica,arial,sans-serif;
 	margin:0;
 	padding:1em 20px 0;
-	font-family:helvetica,arial,sans-serif;
 }
 
 ol{
@@ -14,72 +14,88 @@ ol{
 }
 
 a{
-	text-decoration:none;
 	color:#111;
+	text-decoration:none;
+	-webkit-transition: all .25s ease-in-out;
+	-o-transition: all .25s ease-in-out;
+	transition: all .25s ease-in-out;
 }
 
 a:hover,a:active{
 	color:#17f;
 }
 
-.button{
+.button {
 	border:1px solid #c9cccd;
+	background-color: #fff;
+	color:#008fd5;
+	cursor:pointer;
+	display:inline-block;
 	font-family:"lucida grande",tahoma,verdana,arial,sans-serif;
 	font-size:12px;
 	line-height:28px;
-	display:inline-block;
-	padding:0 13px;
-	color:#32393d;
-	cursor:pointer;
 	outline:none;
+	padding: 2px 20px;
 	position:relative;
-	border-radius:15px;
+	text-transform: uppercase;
 	-webkit-border-radius:15px;
 	-moz-border-radius:15px;
+	border-radius:15px;
 	-moz-background-clip:padding;
 	-webkit-background-clip:padding-box;
 	background-clip:padding-box;
-	border-radius:15px;
-	-webkit-border-radius:15px;
-	-moz-border-radius:15px;
-	-moz-background-clip:padding;
-	-webkit-background-clip:padding-box;
-	background-clip:padding-box;
-	border-radius:15px;
-	-webkit-border-radius:15px;
-	-moz-border-radius:15px;
-	-moz-background-clip:padding;
-	-webkit-background-clip:padding-box;
-	background-clip:padding-box;
-	-webkit-user-select:none;
-	-khtml-user-select:none;
-	-moz-user-select:none;
-	-o-user-select:none;
-	user-select:none;
-	-webkit-user-select:none;
-	-khtml-user-select:none;
-	-moz-user-select:none;
-	-o-user-select:none;
-	user-select:none;
 	-webkit-user-select:none;
 	-khtml-user-select:none;
 	-moz-user-select:none;
 	-o-user-select:none;
 	user-select:none;
 	-webkit-font-smoothing:antialiased;
-	font-size:12px;
-	color:#008fd5;
+	-webkit-transition: all .25s ease-in-out;
+	-o-transition: all .25s ease-in-out;
+	transition: all .25s ease-in-out;
+}
+
+.button:hover {
+	border:1px solid #c9cccd;
+	background-color: #008fd5;
+	color:#fff;
+}
+
+.button .log-in-button {
+	float: right;
+	margin: 0 10px;
+}
+
+header {
+  border-bottom: 1px solid rgba(0,0,0,.25);
+	height: auto;
+  overflow: hidden;
+  padding-bottom: 10px;
 }
 
 header h1{
-	margin:0;
+	float: left;
+	margin: 0 10px 0 0;
+	text-transform: uppercase;
 }
 
 header p{
-	border-bottom:1px solid #eee;
+	color:#aaa;
 	margin:.618em 0 0 -4em;
 	padding:0 0 1em 4em;
-	color:#aaa;
+}
+
+header .select2-container {
+	margin-right: 10px;
+	width: 200px !important;
+}
+header .date-select {
+	margin-right: 10px;
+}
+
+header .select2-container--default .select2-search--inline .select2-search__field {
+	margin-top: 8px !important;
+	width: 200px !important;
 }
 
 footer{
@@ -105,6 +121,24 @@ footer h2{
 	margin:.5em 0 0;
 }
 
+ol.albums {
+	height: auto;
+	overflow: hidden;
+}
+
+ol.albums li.album{
+	border-bottom: 1px solid rgba(0,0,0,.25);
+	display: inline-block;
+	margin:0 .85% 10px 0;
+  padding:0 0 10px 0;
+  vertical-align: top;
+	width:19%;
+}
+
+ol.albums li.album:nth-child(5n) {
+	margin-right: 0;
+}
+
 li.album p.success,li.album p.error,li.album p.status{
 	padding:.5em 1em;
 	margin:.5em 0;
@@ -122,12 +156,6 @@ li.album p.error{
 	background:rgba(215,0,0,0.2);
 }
 
-li.album{
-	display:inline-block;
-	margin:0 0 1.618em;
-	width:19%;
-	vertical-align:top;
-}
 
 li.album p.no{
 	margin:0 0 0 -3.5em;
@@ -154,7 +182,7 @@ li.album h4{
 }
 
 li.album h3 a{
-	font-weight:700;
+	font-weight: 700;
 }
 
 li.album h3 a.name:hover, li.album h3 a.name:active {
@@ -162,8 +190,12 @@ li.album h3 a.name:hover, li.album h3 a.name:active {
 }
 
 li.album img{
+	display: block;
+	margin-bottom: 10px;
 	max-width:100%;
 	height:auto;
+	-webkit-box-shadow: 1px 1px 6px rgba(0,0,0,.25);
+	box-shadow: 1px 1px 6px rgba(0,0,0,.25);
 }
 
 li.album h3 a.name{
@@ -196,22 +228,36 @@ li.album.ANY p.avail{
 }
 
 @media screen and (max-width: 800px) {
-	li.album
-	{
-		width:33%;
+	ol.albums li.album {
+		margin-right: 1%;
+		width:32.25%;
 	}
+
+	ol.albums li.album:nth-child(5n) {
+		margin-right: 1%;
+	}
+	ol.albums li.album:nth-child(3n) {
+		margin-right: 0;
+	}
+
 }
 
 @media screen and (max-width: 700px) {
-	li.album
-	{
+	ol.albums li.album {
+		margin-right: 1%;
 		width:49%;
+	}
+	ol.albums li.album:nth-child(3n) {
+		margin-right: 1%;
+	}
+	ol.albums li.album:nth-child(2n) {
+		margin-right: 0;
 	}
 }
 
 @media screen and (max-width: 400px) {
-	li.album
-	{
+	ol.albums li.album {
+		margin-right: 1%;
 		width:100%;
 	}
 }

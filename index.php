@@ -279,36 +279,45 @@ if( $cache->isExisting("genres") ) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="title" content="Play Later - Spotify New Releases">
+    <meta name="description" content="New releases on Spotify, Rdio style">
+
+    <meta property="og:url" content="http://www.play-later.com"/>
+    <meta property="og:title" content="Play Later - Spotify New Releases"/>
+    <meta property="og:description" content="New releases on Spotify, Rdio style"/>
+
     <title>New releases on Spotify, Rdio style</title>
-  <link type="text/css" href="css/select2.min.css" rel="stylesheet" />
-  <link type="text/css" href="css/site.css" rel="stylesheet" />
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,600,600italic,800' rel='stylesheet' type='text/css'>
+    <link type="text/css" href="css/select2.min.css" rel="stylesheet" />
+    <link type="text/css" href="css/site.css" rel="stylesheet" />
   </head>
 
   <body>
     <header>
       <h1>New releases on <a href="http://www.spotify.com/">Spotify</a></h1>
+      <?php if( !$logged_in ) { ?>
+        <a href="spotify/" class="button log-in-button">Log In</a>
+      <?php } ?>
       <?php if( isset( $_GET['genres'] ) ) { ?>
         <h2>Showing the all albums in genres: <?php implode( ', ', $_GET['genres'] ); ?></h2>
       <?php } else { ?>
         <h2>Showing the most popular released albums since last Friday (<?php echo date( 'm/d/Y', $last_friday ); ?>), no singles, no compilations</h2>
       <?php } ?>
         <h3>Use the filters below to modify the result.</h3>
-      <?php if( !$logged_in ) { ?>
-        <a href="spotify/" class="button">Log In</a>
-      <?php } ?>
       <p>The Play Later buttons will add the selected album to a new (or existing) playlist called &ldquo;Play Later&rdquo;</p>
 
       <form action="index.php" method="get">
         <select id="genres" name="genres[]" multiple="multiple" size="10">
           <?php echo implode("", $select_genres); ?>
         </select>
-        <select name="date">
+        <select name="date" class="date-select">
           <option value="">-- Date Range --</option>
           <option value="this-week"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'this-week' ) { echo ' selected'; } ?>>This Week</option>
           <option value="last-week"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'last-week' ) { echo ' selected'; } ?>>Last Week</option>
           <option value="two-weeks"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'two-weeks' ) { echo ' selected'; } ?>>Two Weeks Ago</option>
         </select>
-        <button type="submit">Filter</button>
+        <button type="submit" class="button">Filter</button>
       </form>
       <?php
       /*
@@ -321,7 +330,7 @@ if( $cache->isExisting("genres") ) {
     </header>
 
     <section>
-      <ol>
+      <ol class="albums">
         <?php foreach ($albums as $album): ?>
           <?php
           if( isset($album['genres']) ) {

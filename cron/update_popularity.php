@@ -1,5 +1,6 @@
 <?php
 error_reporting(E_ALL);
+date_default_timezone_set('UTC');
 
 include_once '../spotify-config.php';
 $spotify = new Spotify();

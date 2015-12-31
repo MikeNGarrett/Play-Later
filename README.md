@@ -32,6 +32,8 @@ $ php cron/get_album_art.php
 $ php cron/update_popularity.php
 ```
 
+If you're running locally change into the cron directory to run the tasks and remove cron/ and run the commands above.
+
 You should add these three commands as cron tasks to keep your data up to date.
 
 First, run `$ crontab -e` then enter the following:

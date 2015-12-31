@@ -8,6 +8,8 @@ This should take care of all the heavy lifting and scheduled processing, so inde
 error_reporting(E_ALL);
 
 include_once '../config.php';
+date_default_timezone_set('UTC');
+
 $database = new Database();
 
 $baseDir = dirname(realpath('./'));

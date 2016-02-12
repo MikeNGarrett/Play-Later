@@ -14,16 +14,14 @@ class Spotify
 	public $session;
 	public $api;
 
+	// It's good to set default values for Spotify here.
+	public function __construct( $spotify_client_id = '', $spotify_client_secret = '', $spotify_redirect_uri = '', $callback_url = '')
 	{
 		// Spotify credentials
-		$spotify_client_id = 'CLIENT_ID';
-		$spotify_client_secret = 'CLIENT_SECRET';
-		// eg http://redgarrett.com/lab/play-later/spotify/ or http://redgarrett.dev:8888/lab/play-later/spotify/ (MAMP example)
-		$spotify_redirect_uri = 'REDIRECT_URI';
-		// eg http://redgarrett.com/lab/play-later/ or http://redgarrett.dev:8888/lab/play-later/ (MAMP example)
-		$this->callback_url = 'CALLBACK_URI';
+		$this->callback_url = $callback_url;
 
 		// Set up Spotify session and API
 		$this->session = new SpotifyWebAPI\Session( $spotify_client_id, $spotify_client_secret, $spotify_redirect_uri );
 		$this->api = new SpotifyWebAPI\SpotifyWebAPI();
 	}
+}

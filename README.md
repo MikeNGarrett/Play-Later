@@ -2,6 +2,8 @@ Please note, this repo has not been abandonned. Development is ongoing, but the 
 
 -Mike Garrett, Feb 10, 2016
 
+[![Issue Count](https://codeclimate.com/github/MikeNGarrett/Play-Later/badges/issue_count.svg)](https://codeclimate.com/github/MikeNGarrett/Play-Later) [![Code Climate](https://codeclimate.com/github/MikeNGarrett/Play-Later/badges/gpa.svg)](https://codeclimate.com/github/MikeNGarrett/Play-Later)
+
 ------------------- 
 
 # Play Later for Spotify

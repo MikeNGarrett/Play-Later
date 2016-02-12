@@ -1,42 +1,10 @@
 <?php
 if( !defined('CHECK') )
 	header( 'Location: '.APPURL );
-#
-# New releases on Spotify
-#
-# A quick Spotify metadata API hack which displays a list of recently added
-# albums in Spotify.
-#
-# MIT license (basically do what you want as long as this license is reproduced):
-#
-# Copyright (c) 2010-2014 Rasmus Andersson, Markus Persson
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
 
-//TODO: handle expired Spotify tokens
-//TODO: handle errors (in general) esp with playlists
-//TODO: You're hanging on to the playlist too long (check for deleted playlist)
-//TODO: Get playlist check to work right.
-//TODO: differentiate clean/dirty and other duplicates
 error_reporting(E_ALL);
 session_start();
+
 if( isset( $_GET['destroy'] ) && $_GET['destroy'] ) {
 	unset( $_GET['destroy'] );
 	session_destroy();
@@ -284,9 +252,6 @@ $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);
 $query->bindParam(':limit', $limit, PDO::PARAM_INT);
 $query->execute();
 
-// Only returns 100
-// TODO: grab all rows or something and actually show an accurate count
-//$album_count = $query->rowCount();
 $albums = $query->fetchAll();
 
 foreach( $albums as $key => &$album ) {
@@ -346,7 +311,7 @@ if( $cache->isExisting("genres") ) {
 
 		$genre_count = $count_genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT);
 		$genre_count = $genre_count[0];
-/* // TODO: figure out what the hell to do here
+/* // TODO: How do we determine what's selected?
 		if( isset( $_GET['genres'] ) && in_array( $genre, $_GET['genres'] ) ) {
 			$selected = ' selected';
 		}

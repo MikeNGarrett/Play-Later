@@ -1,5 +1,4 @@
 <?php
-
 function __autoload( $class_name ) {
 	$class = str_replace( '\\', '/', $class_name );
 	if (file_exists(dirname(__FILE__).'/'.$class . '.php')) {
@@ -15,7 +14,6 @@ class Spotify
 	public $session;
 	public $api;
 
-	public function __construct()
 	{
 		// Spotify credentials
 		$spotify_client_id = 'CLIENT_ID';
@@ -29,4 +27,3 @@ class Spotify
 		$this->session = new SpotifyWebAPI\Session( $spotify_client_id, $spotify_client_secret, $spotify_redirect_uri );
 		$this->api = new SpotifyWebAPI\SpotifyWebAPI();
 	}
-}

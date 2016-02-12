@@ -19,21 +19,29 @@
 				}
 				working = true;
 				var $this = $(this);
+
 				$(this).css('color', '#CECECE').text('Adding Album');
 
 				var albumID = $(this).data('album');
 
+				ga('send', {
+				  hitType: 'event',
+				  eventCategory: 'Release',
+				  eventAction: 'Adding',
+				  eventLabel: albumID
+				});
+
 				$.ajax({
-					url: 'spotify/addTracks.php',
+					url: '/spotify/add-tracks/'+albumID+'/',
 					type: 'GET',
-					data: { album: albumID },
+//					data: { album: albumID },
 					success: function(data) {
 						$this.parent().find('img').css('opacity', '0.3');
 						$this.hide().before('<p class="success">'+data+'</p>');
 						working = false;
 					},
 					error: function(data) {
-						$this.prepend('<p class="error">Error: '+data.statusText+'. Conact <a href="https://twitter.com/mikengarrett" target="_blank">Mike</a></p>');
+						$this.prepend('<p class="error">Error: '+data.statusText+'</p>');
 						working = false;
 					}
 				});

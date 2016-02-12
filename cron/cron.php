@@ -1,16 +1,20 @@
 <?php
+echo '-------------------';
+echo date('Y-m-d').PHP_EOL;
 /*
 
 Cron is intended to process the xml feed of new releases from Spotify and get the data into the database.
 This should take care of all the heavy lifting and scheduled processing, so index.php only has to work on display.
 
 */
+$debug = false;
 error_reporting(E_ALL);
 
 include_once '../config.php';
-date_default_timezone_set('UTC');
-
 $database = new Database();
+
+include_once '../spotify-config.php';
+$spotify = new Spotify();
 
 $baseDir = dirname(realpath('./'));
 $spotifyCountries = loadCountryCodesMap($baseDir.'/ISO-3166-1-alpha-2-country-codes-spotify.tsv');
@@ -24,7 +28,7 @@ $date = date('Y-m-d');
 
 $cachePath = check_dir( $baseDir.'/cache/' );
 if ( !$cachePath ) {
-	echo "Could not create cache directory";
+	echo "Could not create cache directory".PHP_EOL;
 	die;
 }
 
@@ -48,249 +52,134 @@ function loadCountryCodesMap($path) {
 	return $map;
 }
 
-function check_dir( $dir ) {
-	if ( !file_exists( $dir ) ) {
-		$check = mkdir( $dir, 0775, true ); // sets permissions and creates directories recursively
-		if ( !$check ) {
-			error_log( 'Could not create directory: ', $dir );
-			return false;
-		}
-	}
-	return $dir;
-}
-
 $allCountries = loadCountryCodesMap($baseDir.'/ISO-3166-1-alpha-2-country-codes.tsv');
 $spotifyCountriesList = array_keys($spotifyCountries);
 
+/*
 function countryCodeToName($xx) {
 	global $allCountries;
 	return isset($allCountries[$xx]) ? $allCountries[$xx] : $xx;
 }
-
-// xe = custom url encode
-function xe($s) {
-	static $u = array('&', '"', '<', '>');
-	static $e = array('&#38;', '&#34;', '&#60;', '&#62;');
-	return str_replace($u, $e, $s);
-}
-
-function firstChild($node, $nodeName) {
-	$nl = $node->childNodes;
-	for ($i=0;$i<min($nl->length, 4);$i++) {
-		$n = $nl->item($i);
-		if ($n->nodeType === XML_ELEMENT_NODE && $n->nodeName === $nodeName) {
-			return $n;
-		}
-	}
-}
-
-function parseArtist($n) {
-	return (object)array(
-		'uri' => $n->getAttribute('href'),
-		'name' => firstChild($n, 'name')->nodeValue,
-	);
-}
-
-function parseId($n) {
-	return (object)array(
-		'type' => $n->getAttribute('type'),
-		'id' => $n->nodeValue,
-		'href' => $n->hasAttribute('href') ? $n->getAttribute('href') : null,
-	);
-}
-
-function parseAvailability($n) {
-	global $spotifyCountriesList;
-	$terrs = array();
-	$unrestricted = false;
-	$nl = $n->childNodes;
-	for ($i=0;$i<$nl->length;$i++) {
-		$n2 = $nl->item($i);
-		if ($n2->nodeName === 'territories') {
-			if ($n2->nodeValue === 'worldwide')
-				$unrestricted = true;
-			else
-				$terrs = explode(' ', $n2->nodeValue);
-			break;
-		}
-	}
-	$terrs = array_filter($terrs, 'spotifyCountriesFilter');
-	if (!$unrestricted)
-		$unrestricted = count($terrs) === count($spotifyCountriesList);
-	return (object)array(
-		'unrestricted' => $unrestricted,
-		'territories' => $unrestricted ? array() : $terrs,
-	);
-}
-
-function parseAlbum($n) {
-	$artists = array();
-	$ids = array();
-	$album = array(
-		'uri' => $n->getAttribute('href'),
-		'name' => null,
-		'artists' => array(),
-		'ids' => array(),
-		'popularity' => 0.0,
-		'isVariousArtists' => false,
-		'availability' => (object)array(
-			'unrestricted' => false,
-			'territories' => array()),
-	);
-
-	$nl = $n->childNodes;
-
-	for ($i=0;$i<$nl->length;$i++) {
-		$n2 = $nl->item($i);
-		if ($n2->nodeType === XML_ELEMENT_NODE) {
-			switch ($n2->nodeName) {
-			case 'name':
-				$album['name'] = $n2->nodeValue;
-				break;
-
-			case 'artist':
-				$artist = parseArtist($n2);
-				$artists[] = $artist;
-				if ($album['isVariousArtists'] === false)
-					$album['isVariousArtists'] = ($artist->name === 'Various Artists' ? true : false);
-				break;
-
-			case 'id':
-				$ids[] = parseId($n2);
-				break;
-
-			case 'popularity':
-				$album['popularity'] = floatval($n2->nodeValue) * 100;
-				break;
-
-			case 'availability':
-				$album['availability'] = parseAvailability($n2);
-				break;
-			}
-		}
-	}
-
-	$album['artists'] = $artists;
-	$album['ids'] = $ids;
-	return (object)$album;
-}
+*/
 
 $totalPages = 1;
+$i = 0;
 
 // Go get all the pages in the xml feed
 // Note: $totalPages is calculated after the first page is fetched and processed inside the for statement
 for ($pageNo = 1; $pageNo <= $totalPages; $pageNo++) {
+echo 'Page: '.$pageNo.' of '.$totalPages.PHP_EOL;
+	$database->beginTransaction();
 	$startIndex = $itemsPerPage = 0; # reset
 
-	$opts = array(
-	    'http' => array(
-	        'user_agent' => 'PHP libxml agent',
-	    )
+	$get = array('q' => 'tag:new', 'type' => 'album', 'limit' => 50, 'offset' => $pageNo*50);
+	$url = 'https://api.spotify.com/v1/search';
+	$options = array();
+	$defaults = array(
+	    CURLOPT_URL => $url. (strpos($url, '?') === FALSE ? '?' : ''). http_build_query($get),
+	    CURLOPT_HEADER => 0,
+	    CURLOPT_RETURNTRANSFER => TRUE,
+	    CURLOPT_TIMEOUT => 4
 	);
-	$context = stream_context_create($opts);
-	libxml_set_streams_context($context);
 
-	$dom = new DOMDocument();
+    $ch = curl_init();
+    curl_setopt_array($ch, ($options + $defaults));
+    if( ! $result = curl_exec($ch)) {
+        trigger_error(curl_error($ch));
+    }
+    curl_close($ch);
+    $jsonresult = json_decode( $result );
 
-	$xml = new stdClass();
-	$xml->preserveWhiteSpace = false;
+	$totalPages = floor( $jsonresult->albums->total / $jsonresult->albums->limit );
 
-	if($dom->load('http://ws.spotify.com/search/1/album?q=tag:new&page='.$pageNo, LIBXML_DTDLOAD) === false) {
-		error_log( 'Could not load page: '.$pageNo);
-		continue;
-	}
+	$items = $jsonresult->albums->items;
 
-	$doc = $dom->documentElement;
+	foreach( $items as $album ) {
+		$query = $database->prepare('INSERT IGNORE INTO albums (id, name, release_date, availability, popularity, tracks, image, artists, genres, type) VALUES (:id, :name, :release_date, :availability, :popularity, :tracks, :image, :artists, :genres, :type)');
 
-	$nl = $doc->childNodes;
-	for ($i=0;$i<$nl->length;$i++) {
-		$n = $nl->item($i);
-		if ($n->nodeType === XML_ELEMENT_NODE) {
-			switch ($n->nodeName) {
-			case 'opensearch:totalResults':
-				$totalResults = max(intval($n->nodeValue), $totalResults);
-				if ($itemsPerPage !== 0)
-					$totalPages = ceil($totalResults/$itemsPerPage);
-				break;
+		if( $debug ) { echo 'id: '.$album->id.PHP_EOL;  }
+		$query->bindParam(':id', $album->id, PDO::PARAM_STR);
+		if( $debug ) { echo 'name: '.$album->name.PHP_EOL;  }
+		$query->bindParam(':name', $album->name, PDO::PARAM_STR);
 
-			case 'opensearch:startIndex':
-				$startIndex = intval($n->nodeValue);
-				break;
+		$release_date = date('Y-m-d');
+		if( $debug ) { echo 'release date: '.$release_date.PHP_EOL;  }
+		$query->bindParam(':release_date', $release_date, PDO::PARAM_STR);
 
-			case 'opensearch:itemsPerPage':
-				$itemsPerPage = intval($n->nodeValue);
-				if ($totalResults !== 0)
-					$totalPages = ceil($totalResults/$itemsPerPage);
-				break;
+		$availability = $album->available_markets ? 'ANY' : implode(' ', $album->available_markets);
+		if( $debug ) { echo 'availability: '.$availability.PHP_EOL;  }
+		$query->bindParam(':availability', $availability, PDO::PARAM_STR);
 
-			case 'album':
-				$album = parseAlbum($n);
-				$album_uri = xe($album->uri);
-				$available_date = xe($date);
+		$null = NULL;
+		$zero = 0;
+		if( $debug ) { echo 'pop: '.$zero.PHP_EOL;  }
+		$query->bindParam(':popularity', $zero, PDO::PARAM_STR);
+		if( $debug ) { echo 'tracks: '.$null.PHP_EOL;  }
+		$query->bindParam(':tracks', $null, PDO::PARAM_NULL);
 
-				$artists = array();
+		// Assume this is the big image.
+		$image = $null;
+		if( isset( $album->images[0] ) ) {
+			$image = $album->images[0]->url;
+		}
+		if( $debug ) { echo 'image: '.$image.PHP_EOL;  }
+		$query->bindParam(':image', $image, PDO::PARAM_STR);
 
-				$database->beginTransaction();
-				foreach ($album->artists as $artist) {
-					$parse_artist_uri = explode(":", $artist->uri);
-					$artists[] = $parse_artist_uri[2];
-					$query = $database->prepare('INSERT IGNORE INTO artists (id, name) VALUES (:id, :name)');
-					$query->bindParam(':id', $parse_artist_uri[2], PDO::PARAM_STR);
-					$query->bindParam(':name', $artist->name, PDO::PARAM_STR);
-					$query->execute();
-				}
-				$database->commit();
+		if( $debug ) { echo 'artists: '.$null.PHP_EOL;  }
+		$query->bindParam(':artists', $null, PDO::PARAM_NULL);
+		if( $debug ) { echo 'genres: '.$null.PHP_EOL;  }
+		$query->bindParam(':genres', $null, PDO::PARAM_NULL);
 
-				$database->beginTransaction();
+		if( $debug ) { echo 'type: '.$album->album_type.PHP_EOL;  }
+		$query->bindParam(':type', $album->album_type, PDO::PARAM_STR);
 
-				$query = $database->prepare('INSERT INTO albums (id, upc, name, release_date, availability, popularity, tracks, image, artists, genres) VALUES (:id, :upc, :name, NOW(), :availability, :popularity, :tracks, :image, :artists, :genres) ON DUPLICATE KEY UPDATE popularity=:popularity');
-
-				$parse_album_uri = explode(":", $album_uri);
-				$query->bindParam(':id', $parse_album_uri[2], PDO::PARAM_STR);
-				$query->bindParam(':upc', $album->ids[0]->id, PDO::PARAM_STR);
-				$query->bindParam(':name', $album->name, PDO::PARAM_STR);
-
-				$availability = $album->availability->unrestricted ? 'ANY' : xe(implode(' ', $album->availability->territories));
-				$query->bindParam(':availability', $availability, PDO::PARAM_STR);
-
-				$null = NULL;
-				$query->bindParam(':tracks', $null, PDO::PARAM_NULL);
-				$query->bindParam(':popularity', $album->popularity, PDO::PARAM_STR);
-
-				$query->bindParam(':image', $null, PDO::PARAM_NULL);
-
-				$s_artists = serialize( $artists );
-				$query->bindParam(':artists', $s_artists, PDO::PARAM_STR);
-				$query->bindParam(':genres', $null, PDO::PARAM_NULL);
-
-				$query->execute();
-				$database->commit();
-
-/*
-// Why?
-				$query = $database->prepare('SELECT * FROM spotify_releases WHERE album_uri = :album_uri AND available = :available');
-				$query->bindParam(':album_uri', $album_uri, PDO::PARAM_STR);
-				$query->bindParam(':available', $available_date, PDO::PARAM_STR);
-				$query->execute();
-
-				if ($query->rowCount() && ($album->availability->unrestricted || (count($album->availability->territories) && (!isset($region) || strrpos(strtolower(xe(implode(' ', $album->availability->territories))), $region) !== false)))) {
-					# separate VA so we can put the at bottom later
-					if ($album->isVariousArtists)
-						$vaAlbums[] = $album;
-					else
-						$albums[] = $album;
-				}
-*/
-				break;
-			}
+		$test = $query->execute();
+		if( $test ) {
+			$i++;
 		}
 	}
+	try {
+		$database->commit();
+	}
+	catch (PDOException $e) {
+	    echo 'Mysql connection error: '.$e->getMessage().PHP_EOL;
+	}
 }
-/* Now we have...
-$totalPages = all feed pages available. Only used above
-$startIndex = count of item # offset. Not used.
-$albums (array) = Processed album info. Used below.
-Everything is pushed to the db
-*/
+echo 'Processed '.$i.' new albums'.PHP_EOL;
 
+$database->beginTransaction();
+$query2 = $database->prepare('SELECT id FROM albums WHERE artists IS NULL');
+$query2->execute();
+$album_ids = array();
+$i = 0;
+while ($row = $query2->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
+	$album_ids[] = $row[0];
+ 	if( count($album_ids) >= 20) {
+		$albums = $spotify->api->getAlbums($album_ids);
+		foreach( $albums->albums as $album ) {
+			if( isset( $album->artists ) && count( $album->artists) > 0 ) {
+				$artist_query = $database->prepare('UPDATE albums SET artists=:artists WHERE id=:id');
+				$release_artists = serialize( $album->artists );
+				if( count( $release_artists ) >= 1024 ) {
+					print 'Aritst content too long'.PHP_EOL;
+				}
+				$artist_query->bindParam(':artists', $release_artists, PDO::PARAM_LOB);
+				$artist_query->bindParam(':id', $album->id, PDO::PARAM_STR);
+				$test = $artist_query->execute();
+				if( $test ) {
+					$i++;
+				}
+			}
+		}
+		$album_ids = array();
+	}
+	if( $debug ) { echo $i.PHP_EOL;  }
+}
+echo 'Found '.$i.' artists'.PHP_EOL;
+try {
+	$database->commit();
+}
+catch (PDOException $e) {
+    echo 'Mysql connection error: '.$e->getMessage().PHP_EOL;
+}
 ?>

@@ -1,25 +1,32 @@
 <?php
+// $id is passed from the router
+if( !isset( $id ) || empty( $id ) ) {
+	// Legacy functionality still needs to be supported
+	if( isset( $_GET['album'] ) && !empty( $_GET['album'] ) ) {
+		$id = $_GET['album'];
+	} else {
+		error_log( 'Problem adding tracks. No album passed: '.print_r( get_defined_vars(), true ).PHP_EOL );
+		echo "No track specified";
+		die;
+	}
+}
 session_start();
 
-include_once '../spotify-config.php';
+include_once dirname(__FILE__).'/../spotify-config.php';
 $spotify = new Spotify();
 
 if( empty( $_SESSION['spotify_token'] ) ) {
 	echo 'Cannot retrieve token';
 	die;
 }
-if( empty( $_GET['album'] ) ) {
-	echo "No track specified";
-	die;
-}
 
-$album_id = $_GET['album'];
+//$album_id = $_GET['album'];
 $playlist = $_SESSION['playlist'];
 
 $spotify->api->setAccessToken( $_SESSION['spotify_token'] );
 $me = $spotify->api->me();
 
-$album = $spotify->api->getAlbum( $album_id );
+$album = $spotify->api->getAlbum( $id );
 
 $tracks = $album->tracks;
 

@@ -1,0 +1,31 @@
+---
+engines:
+  csslint:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - ruby
+      - javascript
+      - python
+      - php
+  eslint:
+    enabled: true
+  fixme:
+    enabled: true
+  phpmd:
+    enabled: true
+ratings:
+  paths:
+  - "**.css"
+  - "**.inc"
+  - "**.js"
+  - "**.jsx"
+  - "**.module"
+  - "**.php"
+  - "**.py"
+  - "**.rb"
+exclude_paths: [
+	'SpotifyWebAPI', 'last-fm', 'js/select2.min.js', 'js/select2.js', 'css/select2.min.css', 'css/select2.css', 'AltoRouter.php', 'phpfastcache'
+]

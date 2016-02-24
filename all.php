@@ -1,4 +1,5 @@
 <?php
+// This is /music-bin/
 if( !defined('CHECK') )
 	header( 'Location: '.APPURL.'music-bin/' );
 
@@ -38,8 +39,8 @@ if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires']
 	$me = $spotify->api->me();
 	if( !isset( $_SESSION['playlist'] ) && !$cache->isExisting( $me->id.'play-later-list' ) ) {
 		$test = get_playlist( $me, $spotify->api );
-		if( !is_array( $test ) || empty( $test ) ) {
-			error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
+		if( !is_array( $test ) || empty( $test['all'] ) ) {
+			//error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
 			$play_later = $spotify->api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
 		} else {
 			if( count( $test['all'] ) > 1 ) {
@@ -52,7 +53,12 @@ if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires']
 				}
 				$play_later = $final_form;
 			} else {
-				$play_later = $test['all'][0];
+				if( isset( $test['all'][0] ) ) {
+					$play_later = $test['all'][0];
+				} else {
+					//error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
+					$play_later = $spotify->api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
+				}
 			}
 		}
 		$_SESSION['playlist'] = $play_later;
@@ -241,6 +247,9 @@ $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);
 $query->bindParam(':limit', $limit, PDO::PARAM_INT);
 $query->execute();
 
+// Only returns 100
+// TODO: grab all rows or something and actually show an accurate count
+//$album_count = $query->rowCount();
 $albums = $query->fetchAll();
 
 foreach( $albums as $key => &$album ) {
@@ -335,13 +344,9 @@ end here /
 
   <body>
     <header>
-      <h1><a href="<?php echo APPURL; ?>music-bin/">The Music Bin: Browse all newly released albums and save them for later</a></h1>
-      <?php if( !$logged_in ) { ?>
-        <a href="/spotify/" class="button log-in-button">Log In to Spotify</a>
-      <?php } else { ?>
-	    <a href="?destroy=1" class="button log-in-button">Logout</a>
-      <?php } ?>
-	  <h2>Showing the most popular released albums on <a href="http://spotify.com/" target="_blank">Spotify</a>.</h2>
+      <h1><a href="<?php echo APPURL; ?>music-bin/">The Music Bin</a></h1>
+	  <h2>Browse all new releases and save them for later</h2>
+	  <h3>Showing the most popular released albums on <a href="http://spotify.com/" target="_blank">Spotify</a>.</h3>
 	  <?php if( isset( $_GET['genres'] ) ) { ?>
 	    <h2>Showing the all albums in genres: <?php echo implode( ', ', $get_genres ); ?></h2>
 	  <?php } elseif( isset( $_GET['date'] ) ) { ?>
@@ -350,6 +355,13 @@ end here /
 	    <h3>Current limits: Releases since November 11th, 2015 (epoch of Play Later).</h2>
 	  <?php } ?>
 	  <p>Once you log in to Spotify, The Play Later buttons add the selected album to a new (or existing) playlist called &ldquo;Play Later&rdquo;</p>
+	  <div class="log-in-wrap">
+	      <?php if( !$logged_in ) { ?>
+	        <a href="/spotify/" class="button log-in-button">Log In to Spotify</a>
+	      <?php } else { ?>
+		    <a href="?destroy=1" class="button log-in-button">Logout</a>
+	      <?php } ?>
+	  </div>
 	  <form action="/music-bin/" method="get">
 		<select name="date" class="date-select">
 			<option value="">-- Date Range --</option>
@@ -386,7 +398,7 @@ end here /
 		  ?>
 		  <li class="album <?php echo $album['availability']; ?>">
 		  	<p>
-			  	<a class="name" href="spotify:album:<?php echo $album['id']; ?>">
+			  	<a class="album-cover" href="spotify:album:<?php echo $album['id']; ?>">
 				  	<img src="<?php echo $album['image']; ?>" alt="<?php echo $album['name']; ?>"/>
 				</a>
 			</p>
@@ -417,7 +429,7 @@ end here /
 			?>
 		    </h4>
 		    <?php
-			if( isset($album['genres']) && is_array( $album_genres ) && !empty($album_genres) ) {
+			if( isset($album['genres']) && isset( $album_genres ) && is_array( $album_genres ) && !empty($album_genres) ) {
 			    echo '<p class="genre"><strong>Genres:</strong> ';
 			    echo implode(", ", $album_genres);
 			    echo '</p>';
@@ -429,7 +441,7 @@ end here /
 		    <?php if( isset( $album['release_date'] ) && $album['release_date'] ) {
 			    echo '<p class="release-date"><strong>Release date:</strong> '. date( 'M j, Y', strtotime( $album['release_date'] ) ) .'</p>';
 		    } ?>
-		    <p><small><a href="<?php echo APPURL; ?>album/<?php echo $album['id']; ?>/" target="_blank">Full &ldquo;<?php echo $album['name']; ?>&rdquo; details</a></small></p>
+		    <p><small><a href="<?php echo APPURL; ?>album/<?php echo $album['id']; ?>/" target="_blank"><?php echo $album['name']; ?> details</a></small></p>
 
 <?php // add in ability to follow artist from here ?>
 		  </li>

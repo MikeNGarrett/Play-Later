@@ -2,6 +2,7 @@
 if( !defined('CHECK') )
 	header( 'Location: '.APPURL );
 
+
 error_reporting(E_ALL);
 if( !isset( $id ) || empty( $id ) ) {
 	echo '<h1>No album specified</h1>';
@@ -57,7 +58,9 @@ if( isset( $album['genres'] ) && is_serialized( $album['genres'] ) ) {
 	}
 	$s_genres = rtrim($s_genres, ', ');
 }
-
+if( empty( $album ) ) {
+	$album['name'] = $s_artists = 'unknown';
+}
 ?>
 <!DOCTYPE HTML>
 <html lang="en">
@@ -79,23 +82,28 @@ if( isset( $album['genres'] ) && is_serialized( $album['genres'] ) ) {
 	<link type="text/css" href="/css/site.css" rel="stylesheet" />
   </head>
 
-  <body>
+  <body class="single-album">
     <header>
-      <a href="<?php echo $back_url; ?>">&laquo; Back to Play Later</a>
 	  <h1>New Album Release - <?php echo $album['name'].' by '.$s_artists; ?></h1>
     </header>
+    <a href="<?php echo $back_url; ?>" class="button">&laquo; Back to Play Later</a>
     <section class="clearfix">
-	  <?php if( !empty( $album['image'] ) ) { ?> <img class="single-album-cover" src="<?php echo $album['image']; ?>" alt="Album cover for <?php echo $album['name'].' by '.$s_artists; ?>"> <?php } ?>
-	  <ul>
-		<li><strong>Artist(s):</strong> <?php echo $s_artists; ?></li>
-		<li><strong>Album:</strong> <?php echo $album['name']; ?></li>
-		<?php if( !empty( $album['release_date'] ) ) { ?><li><strong>Release Date:</strong> <?php echo $album['release_date']; ?></li><?php } ?>
-		<?php if( !empty( $s_genres ) ) { ?><li><strong>Genres:</strong> <?php echo $s_genres; ?></li><?php } ?>
-		<?php if( !empty( $album['availability'] ) ) { ?><li><strong>Availability:</strong> <?php echo $album['availability']; ?></li><?php } ?>
-		<?php if( !empty( $album['popularity'] ) ) { ?><li><strong>Popularity:</strong> <?php echo $album['popularity'].'%'; ?></li><?php } ?>
-		<?php if( !empty( $album['tracks'] ) ) { ?><li><strong>Number of Tracks:</strong> <?php echo $album['tracks']; ?></li><?php } ?>
-		<?php if( !empty( $album['type'] ) ) { ?><li><strong>Release Type:</strong> <?php echo $album['type']; ?></li><?php } ?>
-	  </ul>
+	  <?php if( !empty( $album ) ) { ?>
+		  <?php if( !empty( $album['image'] ) ) { ?> <a class="album-cover" href="spotify:album:<?php echo $album['id']; ?>"><img class="single-album-cover" src="<?php echo $album['image']; ?>" alt="Album cover for <?php echo $album['name'].' by '.$s_artists; ?>"></a> <?php } ?>
+		  <ul class="album-details">
+			<li><strong>Artist(s):</strong> <?php echo $l_artists; ?></li>
+			<li><strong>Album:</strong> <a class="name" href="spotify:album:<?php echo $album['id']; ?>"><?php echo $album['name']; ?></a></li>
+			<?php if( !empty( $album['release_date'] ) ) { ?><li><strong>Release Date:</strong> <?php echo $album['release_date']; ?></li><?php } ?>
+			<?php if( !empty( $s_genres ) ) { ?><li><strong>Genres:</strong> <?php echo $s_genres; ?></li><?php } ?>
+			<?php if( !empty( $album['availability'] ) ) { ?><li><strong>Availability:</strong> <?php echo $album['availability']; ?></li><?php } ?>
+			<?php if( !empty( $album['popularity'] ) ) { ?><li><strong>Popularity:</strong> <?php echo $album['popularity'].'%'; ?></li><?php } ?>
+			<?php if( !empty( $album['tracks'] ) ) { ?><li><strong>Number of Tracks:</strong> <?php echo $album['tracks']; ?></li><?php } ?>
+			<?php if( !empty( $album['type'] ) ) { ?><li><strong>Release Type:</strong> <?php echo $album['type']; ?></li><?php } ?>
+		  </ul>
+	  <?php } else { ?>
+	  	  <h2>Unknown album</h2>
+	  	  <p>Unsure how you got here? Go back to the <a href="<?php echo $back_url; ?>">full album list</a>.</p>
+	  <?php } ?>
     </section>
     <footer>
       <h2>Built on the open <a href="https://developer.spotify.com/web-api/">Spotify metadata API</a> and the <a href="http://www.last.fm/api">Last.fm API</a></h2>

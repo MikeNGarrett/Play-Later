@@ -4,7 +4,6 @@ if( !defined('CHECK') )
 
 error_reporting(E_ALL);
 session_start();
-
 if( isset( $_GET['destroy'] ) && $_GET['destroy'] ) {
 	unset( $_GET['destroy'] );
 	session_destroy();
@@ -44,8 +43,8 @@ if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires']
 	$me = $spotify->api->me();
 	if( !isset( $_SESSION['playlist'] ) && !$cache->isExisting( $me->id.'play-later-list' ) ) {
 		$test = get_playlist( $me, $spotify->api );
-		if( !is_array( $test ) || empty( $test ) ) {
-			error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
+		if( !is_array( $test ) || empty( $test['all'] ) ) {
+			//error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
 			$play_later = $spotify->api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
 		} else {
 			if( count( $test['all'] ) > 1 ) {
@@ -58,7 +57,12 @@ if( !empty( $_SESSION['spotify_token'] ) && !empty( $_SESSION['spotify_expires']
 				}
 				$play_later = $final_form;
 			} else {
-				$play_later = $test['all'][0];
+				if( isset( $test['all'][0] ) ) {
+					$play_later = $test['all'][0];
+				} else {
+					//error_log( "Did not find Play Later. count:". count($all_user_playlists).PHP_EOL );
+					$play_later = $spotify->api->createUserPlaylist( $me->id, array( 'name' => 'Play Later' ) );
+				}
 			}
 		}
 		$_SESSION['playlist'] = $play_later;
@@ -187,6 +191,7 @@ $where_track_count = "";
 $where_release_date = "";
 $where_availability = "";
 $where_genres = "";
+/*
 if( isset( $_GET['genres'] ) ) {
 	$get_genres = $_GET['genres'];
 
@@ -238,10 +243,11 @@ if( isset( $_GET['genres'] ) ) {
 	$where_genres = rtrim( $where_genres, ' OR' );
 	$where_genres .= ")";
 } else {
+*/
 	$where_track_count = "( tracks > 3 AND tracks < 25 ) AND ";
 	$where_release_date = "( release_date BETWEEN :lastfriday AND :thisfriday )";
 //	$where_availability = "( availability LIKE '%US%' OR availability='ANY' )";
-}
+//}
 
 $query = $database->prepare("SELECT DISTINCT * FROM albums WHERE " . $where_track_count . $where_release_date ." AND type='album' ". $where_genres . " GROUP BY(artists) ORDER BY popularity DESC LIMIT :offset, :limit");
 if( !isset( $_GET['genres'] ) ) {
@@ -252,6 +258,9 @@ $query->bindParam(':offset', $list_offset, PDO::PARAM_INT);
 $query->bindParam(':limit', $limit, PDO::PARAM_INT);
 $query->execute();
 
+// Only returns 100
+// TODO: grab all rows or something and actually show an accurate count
+//$album_count = $query->rowCount();
 $albums = $query->fetchAll();
 
 foreach( $albums as $key => &$album ) {
@@ -281,6 +290,7 @@ foreach( $albums as $key => &$album ) {
 
 // TODO: figure out what the hell to exactly do with these currently useless genres
 
+/*
 if( $cache->isExisting("genres") ) {
 	$select_genres = $cache->get("genres");
 
@@ -311,11 +321,11 @@ if( $cache->isExisting("genres") ) {
 
 		$genre_count = $count_genre_query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT);
 		$genre_count = $genre_count[0];
-/* // TODO: How do we determine what's selected?
+ // TODO: figure out what the hell to do here
 		if( isset( $_GET['genres'] ) && in_array( $genre, $_GET['genres'] ) ) {
 			$selected = ' selected';
 		}
-*/
+
 		if( $genre_count > 1 ) {
 			$select_genres[$genre] = '<option value="'.$url_genres.'"'.$selected.'>'.$genre.' ('.$genre_count.')</option>';
 		}
@@ -328,6 +338,7 @@ if( $cache->isExisting("genres") ) {
 
 	$cache->set("genres", $select_genres, 60*60*12); // Cache for 12 hours
 }
+*/
 ?>
 <!DOCTYPE HTML>
 <html lang="en">
@@ -351,29 +362,31 @@ if( $cache->isExisting("genres") ) {
 
   <body>
     <header>
-      <h1><a href="<?php echo APPURL; ?>">Play Later: Browse newly released albums and save them for later</a></h1>
-      <?php if( !$logged_in ) { ?>
-        <a href="/spotify/" class="button log-in-button">Log In to Spotify</a>
-      <?php } else { ?>
-	    <a href="?destroy=1" class="button log-in-button">Logout</a>
-      <?php } ?>
+      <h1><a href="<?php echo APPURL; ?>">Play Later</a></h1>
+      <h2>Browse newly released albums and save them for later</h2>
+      <h3>Showing the most popular released albums on <a href="http://spotify.com/" target="_blank">Spotify</a>.</h3>
 	  <?php if( isset( $_GET['genres'] ) ) { ?>
-	    <h2>Showing the all albums in genres: <?php echo implode( ', ', $get_genres ); ?></h2>
+	    <h3>Showing the all albums in genres: <?php echo implode( ', ', $get_genres ); ?></h3>
 	  <?php } else { ?>
-	    <h2>Showing the most popular released albums on <a href="http://spotify.com/" target="_blank">Spotify</a>.</h2>
-	    <h3>Current limits: Releases since last Friday (<?php echo $previous_date; ?>), no singles, no compilations.</h2>
+	    <h4>Current limits: Releases since last Friday (<?php echo $previous_date; ?>), no singles, no compilations.</h4>
 	  <?php } ?>
       <p>
 	      Want to remove the filters? Browse the full, unfiltered list on <a href="<?php echo APPURL; ?>music-bin/">The Music Bin</a>.
       </p>
 	  <p>Once you log in to Spotify, The Play Later buttons add the selected album to a new (or existing) playlist called &ldquo;Play Later&rdquo;</p>
-
+	  <div class="log-in-wrap">
+	      <?php if( !$logged_in ) { ?>
+	        <a href="/spotify/" class="button log-in-button">Log In to Spotify</a>
+	      <?php } else { ?>
+		    <a href="?destroy=1" class="button log-in-button">Logout</a>
+	      <?php } ?>
+	  </div>
 	  <form action="/" method="get">
-	  	<?php if( $select_genres != "nope") { ?>
+	  	<?php /*if( $select_genres != "nope") { ?>
 		<select id="genres" name="genres[]" multiple="multiple" size="10">
 			<?php echo implode("", $select_genres); ?>
 		</select>
-		<?php } ?>
+		<?php } */ ?>
 		<select name="date" class="date-select">
 			<option value="">-- Date Range --</option>
 			<option value="this-week"<?php if( isset( $_GET['date'] ) && $_GET['date'] == 'this-week' ) { echo ' selected'; } ?>>This Week</option>
@@ -396,6 +409,7 @@ if( $cache->isExisting("genres") ) {
       <ol class="albums">
 		<?php foreach ($albums as $album): ?>
 		  <?php
+			/*
 			$album_genres = array();
 			if( isset($album['genres']) ) {
 			    $album_genres = maybe_unserialize( $album['genres'] );
@@ -406,10 +420,11 @@ if( $cache->isExisting("genres") ) {
 				    continue;
 				}
 			}
+			*/
 		  ?>
 		  <li class="album <?php echo $album['availability']; ?>">
 		  	<p>
-			  	<a class="name" href="spotify:album:<?php echo $album['id']; ?>">
+			  	<a class="album-cover" href="spotify:album:<?php echo $album['id']; ?>">
 				  	<img src="<?php echo $album['image']; ?>" alt="<?php echo $album['name']; ?>"/>
 				</a>
 			</p>
@@ -440,7 +455,7 @@ if( $cache->isExisting("genres") ) {
 			?>
 		    </h4>
 		    <?php
-			if( isset($album['genres']) && is_array( $album_genres ) && !empty($album_genres) ) {
+			if( isset($album['genres']) && isset( $album_genres ) && is_array( $album_genres ) && !empty($album_genres) ) {
 			    echo '<p class="genre"><strong>Genres:</strong> ';
 			    echo implode(", ", $album_genres);
 			    echo '</p>';
@@ -452,7 +467,7 @@ if( $cache->isExisting("genres") ) {
 		    <?php if( isset( $album['release_date'] ) && $album['release_date'] ) {
 			    echo '<p class="release-date"><strong>Release date:</strong> '. date( 'M j, Y', strtotime( $album['release_date'] ) ) .'</p>';
 		    } ?>
-		    <p><small><a href="<?php echo APPURL; ?>album/<?php echo $album['id']; ?>/" target="_blank">Full &ldquo;<?php echo $album['name']; ?>&rdquo; details</a></small></p>
+		    <p><small><a href="<?php echo APPURL; ?>album/<?php echo $album['id']; ?>/" target="_blank"><?php echo $album['name']; ?> details</a></small></p>
 
 <?php // add in ability to follow artist from here ?>
 		  </li>
@@ -517,15 +532,5 @@ if( $cache->isExisting("genres") ) {
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 	<script type="text/javascript" src="/js/select2.min.js"></script>
     <script type="text/javascript" src="/js/site.js"></script>
-	<script>
-	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-	ga('create', 'UA-71716026-1', 'auto');
-	ga('send', 'pageview');
-
-	</script>
   </body>
 </html>

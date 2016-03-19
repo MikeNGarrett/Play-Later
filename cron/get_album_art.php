@@ -21,7 +21,9 @@ $artist_ids = array();
 $a = 0;
 
 while ($row = $query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
-	$album_ids[] = $row[0];
+	if( isset( $row[0] ) && !empty( $row[0] ) ) {
+		$album_ids[] = $row[0];
+	}
 /*
 	if( $row[1] && is_serializes( $row[1] ) ) {
 		$all_artists = unserialize( $row[1] );

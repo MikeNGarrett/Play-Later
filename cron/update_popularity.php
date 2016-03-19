@@ -21,7 +21,9 @@ $i = 0;
 
 $database->beginTransaction();
 while ($row = $query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
-	$album_ids[] = $row[0];
+	if( isset( $row[0] ) && !empty( $row[0] ) ) {
+		$album_ids[] = $row[0];
+	}
 	if( count($album_ids) >= 20) {
 		$albums = $spotify->api->getAlbums($album_ids);
 

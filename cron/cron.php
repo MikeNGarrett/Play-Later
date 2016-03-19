@@ -79,13 +79,16 @@ echo 'Page: '.$pageNo.' of '.$totalPages.PHP_EOL;
 	    CURLOPT_URL => $url. (strpos($url, '?') === FALSE ? '?' : ''). http_build_query($get),
 	    CURLOPT_HEADER => 0,
 	    CURLOPT_RETURNTRANSFER => TRUE,
-	    CURLOPT_TIMEOUT => 4
+	    CURLOPT_TIMEOUT => 4,
+		CURLOPT_FAILONERROR => TRUE
 	);
 
     $ch = curl_init();
     curl_setopt_array($ch, ($options + $defaults));
     if( ! $result = curl_exec($ch)) {
-        trigger_error(curl_error($ch));
+	    if( $debug ) { print_r($ch); }
+        error_log(curl_error($ch));
+        die('curl died');
     }
     curl_close($ch);
     $jsonresult = json_decode( $result );
@@ -95,8 +98,10 @@ echo 'Page: '.$pageNo.' of '.$totalPages.PHP_EOL;
 	$items = $jsonresult->albums->items;
 
 	foreach( $items as $album ) {
+		if( !isset( $album->id ) || empty( $album->id ) ) {
+			continue;
+		}
 		$query = $database->prepare('INSERT IGNORE INTO albums (id, name, release_date, availability, popularity, tracks, image, artists, genres, type) VALUES (:id, :name, :release_date, :availability, :popularity, :tracks, :image, :artists, :genres, :type)');
-
 		if( $debug ) { echo 'id: '.$album->id.PHP_EOL;  }
 		$query->bindParam(':id', $album->id, PDO::PARAM_STR);
 		if( $debug ) { echo 'name: '.$album->name.PHP_EOL;  }
@@ -153,8 +158,11 @@ $query2->execute();
 $album_ids = array();
 $i = 0;
 while ($row = $query2->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
-	$album_ids[] = $row[0];
+	if( isset( $row[0] ) && !empty( $row[0] ) ) {
+		$album_ids[] = $row[0];
+	}
  	if( count($album_ids) >= 20) {
+	 	if( $debug ) { print_r( $album_ids); }
 		$albums = $spotify->api->getAlbums($album_ids);
 		foreach( $albums->albums as $album ) {
 			if( isset( $album->artists ) && count( $album->artists) > 0 ) {
@@ -173,7 +181,7 @@ while ($row = $query2->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
 		}
 		$album_ids = array();
 	}
-	if( $debug ) { echo $i.PHP_EOL;  }
+	if( $debug ) { echo 'Artists: '.$i.PHP_EOL;  }
 }
 echo 'Found '.$i.' artists'.PHP_EOL;
 try {

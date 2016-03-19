@@ -48,6 +48,9 @@ while ($row = $query->fetch(PDO::FETCH_NUM, PDO::FETCH_ORI_NEXT)) {
 	$popularity = $row[2];
 	// album id
 	$id = $row[3];
+	if( !isset( $id ) || empty( $id ) )
+		continue;
+
 	// genres
 	$genres = false;
 	if( isset( $row[4] ) && !empty( $row[4] ) && is_serialized( $row[4] ) ) {

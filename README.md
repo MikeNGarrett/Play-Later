@@ -1,3 +1,9 @@
+| Tables        | Are           | Cool  |
+| ------------- |:-------------:| -----:|
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
+
 Please note, this repo has not been abandonned. Development is ongoing, but the codebase is unstable due to changes to the API and new integrations with Spotify and Last.fm. It is my intention to wrap these together and push them up here once I am able to package everything so it's able to be replicated on another environment. 
 
 -Mike Garrett, Feb 10, 2016
